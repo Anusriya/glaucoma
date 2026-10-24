@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANDG-Net Glaucoma Dashboard</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#1c2430;--mute:#5d6b7c;--line:#dde3ea;--accent:#1f5fbf;
+--ok:#1e8a4c;--okbg:#e6f5ec;--warn:#b26a00;--warnbg:#fff3df;--bad:#b3261e;--badbg:#fdeceb;--info:#1f5fbf;--infobg:#e8f0fc}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--card:#19212b;--ink:#e8edf3;--mute:#9aa7b6;--line:#2c3744;--accent:#6fa3f0;
+--ok:#5fd08c;--okbg:#14301f;--warn:#f0b35c;--warnbg:#38290f;--bad:#f28b82;--badbg:#3a1613;--info:#6fa3f0;--infobg:#15263d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 28px;border-bottom:1px solid var(--line);background:var(--card);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:20px;margin:0}header p{margin:0;color:var(--mute);font-size:13px}
+.badge{margin-left:auto;padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600}
+.badge.model{background:var(--okbg);color:var(--ok)}.badge.demo{background:var(--badbg);color:var(--bad)}
+main{max-width:1180px;margin:0 auto;padding:22px 20px 60px;display:grid;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.card h2{font-size:15px;margin:0 0 12px;letter-spacing:.2px}
+#demoBanner{display:none;background:var(--badbg);color:var(--bad);border:1px solid var(--bad);border-radius:12px;padding:12px 16px;font-size:14px}
+.upload{display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:stretch}
+@media(max-width:760px){.upload{grid-template-columns:1fr}}
+#drop{border:2px dashed var(--line);border-radius:12px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--mute);cursor:pointer;text-align:center;padding:16px;transition:.15s}
+#drop.over{border-color:var(--accent);background:var(--infobg)}#drop b{color:var(--ink)}
+#preview{max-height:260px;max-width:100%;border-radius:10px;display:none}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}.btn.sec{background:transparent;color:var(--accent);border:1px solid var(--accent);font-weight:500;padding:8px 14px;font-size:13px}
+.side{display:flex;flex-direction:column;gap:10px;justify-content:center}.side small{color:var(--mute)}
+#results{display:none;gap:18px;grid-template-columns:1fr}
+#verdict{border-radius:14px;padding:18px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+#verdict .v{font-size:24px;font-weight:700}#verdict .r{font-size:14px;max-width:760px}
+.v-glaucoma{background:var(--badbg);color:var(--bad)}.v-suspicious{background:var(--warnbg);color:var(--warn)}.v-normal{background:var(--okbg);color:var(--ok)}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--card)}
+.tile .k{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.6px}.tile .n{font-size:30px;font-weight:700;line-height:1.2}.tile .s{font-size:12.5px;color:var(--mute)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}@media(max-width:860px){.two{grid-template-columns:1fr}}
+.bar{position:relative;height:16px;border-radius:8px;background:var(--line);margin:26px 4px 30px}
+.bar .fill{position:absolute;left:0;top:0;bottom:0;border-radius:8px;background:var(--accent)}
+.mark{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--ink)}
+.mark span{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--mute)}
+.mark.low span{top:auto;bottom:-17px}
+.cdrbar{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:26px 4px 30px;position:relative}
+.cdrbar i{display:block;height:100%}.pin{position:absolute;top:-9px;width:0;height:0}
+.pin:after{content:"";position:absolute;left:-7px;top:0;border:7px solid transparent;border-top:11px solid var(--ink)}
+.pin b{position:absolute;top:-19px;left:0;transform:translateX(-50%);font-size:12px}
+.row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13.5px}.row .l{width:70px;color:var(--mute)}
+.row .t{flex:1;height:10px;border-radius:5px;background:var(--line);overflow:hidden}.row .t i{display:block;height:100%;background:var(--accent)}.row .p{width:44px;text-align:right}
+ol.steps{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+ol.steps li{display:grid;grid-template-columns:30px 1fr;gap:12px;align-items:start}
+.dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;background:var(--info)}
+.dot.pass,.dot.normal{background:var(--ok)}.dot.fail,.dot.suspicious{background:var(--warn)}.dot.glaucoma{background:var(--bad)}.dot.skip{background:var(--mute)}
+ol.steps b{display:block}ol.steps span{color:var(--mute);font-size:13.5px}
+.imgs{display:flex;gap:14px;flex-wrap:wrap}.imgs figure{margin:0;text-align:center;font-size:12px;color:var(--mute)}
+.imgs img{height:210px;border-radius:10px;border:1px solid var(--line);display:block;margin-bottom:4px}
+#warns{display:grid;gap:8px}.w{background:var(--warnbg);color:var(--warn);padding:9px 14px;border-radius:10px;font-size:13.5px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}th{color:var(--mute);font-weight:600}
+tr.h{cursor:pointer}tr.h:hover{background:var(--infobg)}
+.disc{font-size:12.5px;color:var(--mute)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+@media print{header .badge,.upload,#hist,.actions,#demoBanner{display:none!important}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>ANDG-Net Glaucoma Dashboard</h1><p>Upload a colour fundus photograph to get the diagnosis, CDR value, severity and verifier trace</p></div>
+  <span class="badge" id="modeBadge">checking...</span>
+</header>
+<main>
+  <div id="demoBanner"><b>DEMO MODE: no trained model is loaded.</b> Every number shown is a placeholder derived from the image bytes and is <b>not</b> a prediction. <span id="demoWhy"></span> Put your checkpoints in the <code>checkpoints</code> folder and restart.</div>
+
+  <section class="card">
+    <h2>1. Upload a fundus image</h2>
+    <div class="upload">
+      <div id="drop"><img id="preview" alt="Selected image preview"><div id="dropText"><b>Drop an image here</b><br>or click to choose (PNG, JPG, TIFF, up to 25 MB)</div></div>
+      <div class="side">
+        <button class="btn" id="go" disabled>Analyse image</button>
+        <small id="fname">No file selected</small>
+        <small>The image is processed on this computer and is not stored.</small>
+      </div>
+    </div>
+    <input type="file" id="file" accept="image/*" hidden>
+  </section>
+
+  <div id="results">
+    <div id="warns"></div>
+    <div id="verdict"><div><div class="v" id="vLabel"></div></div><div class="r" id="vReason"></div></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="two">
+      <section class="card"><h2>Glaucoma probability (Stage 1)</h2><div id="probBar"></div><div id="views" class="disc"></div></section>
+      <section class="card"><h2>Cup-to-disc ratio and severity</h2><div id="cdrBar"></div><div id="cdrText" class="disc"></div></section>
+    </div>
+    <div class="two">
+      <section class="card"><h2>What happened in the verifier</h2><ol class="steps" id="steps"></ol></section>
+      <section class="card"><h2>Predicted disc size</h2><div id="disc"></div><p class="disc">The healthy reference is a mix of the three size prototypes, weighted by these probabilities. The disc-size predictor reached only about 52% accuracy on test images, so this is a soft hint, not a measurement.</p>
+        <h2 style="margin-top:18px">Images</h2><div class="imgs"><figure><img id="imgOrig" alt="Uploaded"><span>Uploaded</span></figure><figure><img id="imgProc" alt="Pre-processed"><span>Cropped + CLAHE (model input)</span></figure></div></section>
+    </div>
+    <div class="actions"><button class="btn sec" id="dl">Download result (JSON)</button><button class="btn sec" onclick="window.print()">Print / save as PDF</button></div>
+  </div>
+
+  <section class="card" id="hist" style="display:none"><h2>This session</h2>
+    <table><thead><tr><th>Time</th><th>File</th><th>Result</th><th>Probability</th><th>CDR</th><th>Severity</th></tr></thead><tbody id="histBody"></tbody></table></section>
+
+  <p class="disc"><b>Research prototype, not a medical device.</b> Results come from a model trained on 2,100 images (test accuracy about 84%, specificity 84%, sensitivity 85% at the default threshold) and can be wrong. The CDR estimate has a typical error of about 0.07 and tends to shrink towards the middle of the range; severity was only checked on mild and moderate cases. A clinician must confirm any finding.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let file=null,last=null,history=[];
+fetch('/api/status').then(r=>r.json()).then(s=>{
+  const b=$('modeBadge');
+  if(s.mode==='demo'){b.textContent='DEMO MODE';b.className='badge demo';$('demoBanner').style.display='block';$('demoWhy').textContent=s.error?('Reason: '+s.error+'.'):''}
+  else{b.textContent='Model loaded ('+s.device+')';b.className='badge model'}
+});
+const drop=$('drop'),inp=$('file');
+drop.onclick=()=>inp.click();
+['dragenter','dragover'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',ev=>{if(ev.dataTransfer.files[0])pick(ev.dataTransfer.files[0])});
+inp.onchange=()=>{if(inp.files[0])pick(inp.files[0])};
+function pick(f){
+  file=f;$('fname').textContent=f.name+' ('+Math.round(f.size/1024)+' KB)';
+  const url=URL.createObjectURL(f);$('preview').src=url;$('preview').style.display='block';$('dropText').style.display='none';
+  $('imgOrig').src=url;$('go').disabled=false;
+}
+$('go').onclick=async()=>{
+  if(!file)return;const btn=$('go');btn.disabled=true;btn.textContent='Analysing...';
+  const fd=new FormData();fd.append('image',file);
+  try{
+    const r=await fetch('/api/analyze',{method:'POST',body:fd});const j=await r.json();
+    if(!r.ok)throw new Error(j.error||'Request failed');
+    last=j;render(j);
+  }catch(e){alert('Error: '+e.message)}
+  btn.disabled=false;btn.textContent='Analyse image';
+};
+const pct=(x,d=1)=>(x*100).toFixed(d)+'%';
+function tile(k,n,s){return `<div class="tile"><div class="k">${k}</div><div class="n" style="${String(n).length>9?'font-size:22px;padding:5px 0':''}">${n}</div><div class="s">${s}</div></div>`}
+function render(j){
+  $('results').style.display='grid';
+  const d=j.decision;
+  $('verdict').className='v-'+d.verdict;$('verdict').id='verdict';
+  $('vLabel').textContent=d.label;$('vReason').textContent=d.reason+(j.demo?' (DEMO values)':'');
+  $('warns').innerHTML='';j.warnings.forEach(w=>{const e=document.createElement('div');e.className='w';e.textContent=w;$('warns').appendChild(e)});
+  const sev=j.cdr.severity;
+  $('tiles').innerHTML=
+    tile('Glaucoma probability',pct(j.stage1.probability),'Stage 1, mean of 3 views')+
+    tile('Confidence in result',pct(d.confidence),d.verdict==='normal'?'probability of no glaucoma':(d.verdict==='glaucoma'?'probability of glaucoma':'glaucoma probability (borderline or unconfirmed)'))+
+    tile('Predicted CDR',j.cdr.value.toFixed(3),j.cdr.band)+
+    tile('Severity',sev?sev:'Not applicable',sev?'from predicted CDR':'shown only when Stage 1 is positive')+
+    tile('Verifier',d.stage1_positive?(d.verifier_confirmed?'Confirmed':'Not confirmed'):'Not applied','CDR threshold '+j.verifier.tau.toFixed(2));
+  // probability bar
+  const p=j.stage1.probability,t=j.stage1.threshold;
+  $('probBar').innerHTML=`<div class="bar"><div class="fill" style="width:${p*100}%;background:${p>=t?'var(--bad)':'var(--ok)'}"></div><div class="mark" style="left:${t*100}%"><span>threshold ${t.toFixed(2)}</span></div></div>`;
+  $('views').innerHTML='View agreement: '+Object.entries(j.stage1.views).map(([k,v])=>`${k} ${pct(v)}`).join(' &middot; ');
+  // CDR bar
+  const c=j.cdr.value,tau=j.verifier.tau;
+  $('cdrBar').innerHTML=`<div style="position:relative;margin:30px 4px 6px"><div style="display:flex;height:16px;border-radius:8px;overflow:hidden"><i style="width:50%;background:#7fc99a"></i><i style="width:15%;background:#f2d279"></i><i style="width:20%;background:#f0a35c"></i><i style="width:15%;background:#e0685f"></i></div>
+   <div class="pin" style="left:${Math.min(Math.max(c,0),1)*100}%"><b>${c.toFixed(2)}</b></div>
+   <div class="mark low" style="left:${tau*100}%;top:-2px;bottom:-2px;background:var(--accent)"><span style="color:var(--accent)">verifier ${tau.toFixed(2)}</span></div></div>
+   <div class="disc" style="display:flex;justify-content:space-between;margin:22px 4px 14px"><span>0</span><span>0.5</span><span>0.65</span><span>0.85</span><span>1.0</span></div>`;
+  $('cdrText').textContent='Bands: normal range < 0.5, borderline 0.5 to 0.65, enlarged 0.65 to 0.85, very large > 0.85. Verifier threshold: '+tau.toFixed(2)+'. '+j.cdr.severity_note+' Typical CDR error about '+j.cdr.typical_error.toFixed(2)+'.';
+  // disc
+  $('disc').innerHTML=Object.entries(j.disc.buckets).map(([k,v])=>`<div class="row"><span class="l">${k}</span><span class="t"><i style="width:${v*100}%"></i></span><span class="p">${(v*100).toFixed(0)}%</span></div>`).join('');
+  // steps
+  $('steps').innerHTML='';j.verifier.steps.forEach((s,i)=>{
+    const li=document.createElement('li');
+    const dot=document.createElement('div');dot.className='dot '+s.status;dot.textContent=i+1;
+    const box=document.createElement('div');const b=document.createElement('b');b.textContent=s.title;const sp=document.createElement('span');sp.textContent=s.text;
+    box.appendChild(b);box.appendChild(sp);li.appendChild(dot);li.appendChild(box);$('steps').appendChild(li)});
+  $('imgProc').src=j.image.processed;
+  // history
+  history.unshift(j);$('hist').style.display='block';
+  $('histBody').innerHTML='';history.forEach((h,i)=>{
+    const tr=document.createElement('tr');tr.className='h';
+    [h.timestamp.slice(11),h.filename,h.decision.label,pct(h.stage1.probability),h.cdr.value.toFixed(3),h.cdr.severity||'-'].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
+    tr.onclick=()=>{last=h;render2(h)};$('histBody').appendChild(tr)});
+  $('results').scrollIntoView({behavior:'smooth'});
+}
+function render2(h){const keep=history.slice();history=keep.filter(x=>x!==h);render(h);}
+$('dl').onclick=()=>{
+  if(!last)return;const o=JSON.parse(JSON.stringify(last));delete o.image.processed;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,2)],{type:'application/json'}));
+  a.download=(last.filename||'result').replace(/\.[^.]+$/,'')+'_result.json';a.click();
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "stage1_ckpt": "checkpoints/stage1_best.pth",
+  "stage2_ckpt": "checkpoints/stage2_deviation_gate_primary.pth",
+  "stage1_threshold": 0.5,
+  "tau": 0.44,
+  "borderline_band": 0.10,
+  "severity_thresholds": [0.65, 0.85],
+  "device": "auto",
+  "allow_demo_mode": true,
+  "host": "127.0.0.1",
+  "port": 5000
+}

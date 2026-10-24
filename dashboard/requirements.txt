@@ -1,0 +1,7 @@
+flask>=2.3
+numpy
+opencv-python-headless
+pillow
+torch>=2.0
+torchvision
+timm>=0.9
